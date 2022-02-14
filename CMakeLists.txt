@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.21)
+set(CMAKE_CXX_STANDARD 17)
+set(PROJECT_NAME http_proxy)
+project(${PROJECT_NAME})
+add_subdirectory(proxy)
