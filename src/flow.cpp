@@ -29,10 +29,12 @@ void Flow::destroy() {
 }
 
 void Flow::handle() {
-    asio::async_read_until(inSocket(), _request, "\r\n",
-                           std::bind(&Flow::onRequestFirstLineReceived, this,
-                                     std::placeholders::_1, std::placeholders::_2));
-
+//    asio::async_read_until(inSocket(), _request, "\r\n",
+//                           std::bind(&Flow::onRequestFirstLineReceived, this,
+//                                     std::placeholders::_1, std::placeholders::_2));
+    asio::async_read_until(inSocket(), _request, "\r\n\r\n",
+                     std::bind(&Flow::onRequestBodyReceived, this,
+                               std::placeholders::_1, std::placeholders::_2));
 }
 
 
@@ -110,11 +112,59 @@ void Flow::onRequestHeadersReceived(const system::error_code &err, std::size_t b
 }
 
 void Flow::onRequestBodyReceived(const system::error_code &err, std::size_t bytes) {
-    if (err.value() != asio::error::eof) {
+    if (err.value()) {
         std::cerr << "Error in async_read (onRequestBodyReceived): " << err.value() << " " << err.message() << std::endl;
         destroy();
         return;
     }
+
+    /* Извлечение стартовой строки запроса: */
+    std::string requestLine;
+    std::istream requestStream(&_request);
+    std::getline(requestStream, requestLine, '\r');
+    requestStream.get();
+    std::cout << requestLine << std::endl;
+
+    /* Парсинг стартовой строки: */
+    std::istringstream requestLineStream(requestLine);
+
+    std::string requestMethod;
+    requestLineStream >> requestMethod;
+
+    std::string requestTarget;
+    requestLineStream >> requestTarget;
+
+    std::string httpVersion;
+    requestLineStream >> httpVersion;
+
+    if (httpVersion != HTTP1_1) {
+        std::cerr << "Не поддерживаемая версия HTTP: " << httpVersion << std::endl;
+        destroy();
+        return;
+    }
+
+    auto hostPortPath = HostPortPath::fromRequestTarget(requestTarget);
+    _host = hostPortPath.host;
+    _port = hostPortPath.port;
+    _patchedHeaders += requestMethod + " " + hostPortPath.path + " " + httpVersion + "\r\n";
+
+    std::string header;
+    while (true) {
+        std::getline(requestStream, header, '\r');
+        requestStream.get();
+        if (header.empty()) {
+            break;
+        }
+
+        if (header.find(PROXY_CONNECTION) == std::string::npos) {
+            _patchedHeaders += header + "\r\n";
+        }
+    }
+    _patchedHeaders += "\r\n";
+    std::cout << _patchedHeaders;
+    requestStream.seekg(2, std::ios_base::cur);
+    _request.consume(requestStream.tellg());
+    std::cout << _request.size();
 
     asio::ip::tcp::resolver::query resolverQuery(_host,
                                                  std::to_string(_port),
@@ -174,6 +224,8 @@ void Flow::onResponseRead(const system::error_code &err, std::size_t bytes) {
         return;
     }
 
+    std::cout << static_cast<const char *>(_response.data().data());
+
     asio::async_write(*_inSocket,
                       asio::buffer(_response.data()),
                       std::bind(&Flow::onResponseSend, this,
@@ -187,5 +239,6 @@ void Flow::onResponseSend(const system::error_code &err, std::size_t bytes) {
         return;
     }
     _inSocket->shutdown(asio::ip::tcp::socket::shutdown_send);
+    _inSocket->close();
     std::cout << "Proxy done: " << _host << ":" << _port << std::endl;
 }
