@@ -2,10 +2,10 @@
 #include "proxy.h"
 
 int main() {
-    std::cout << "Hello World!\n";
+    std::cout << "Start proxy" << std::endl;
     Proxy proxy(8);
     try {
-        proxy.start(5000);
+        proxy.start(80);
     } catch (std::exception &exception) {
         std::cerr << exception.what() << std::endl;
         proxy.stop();
