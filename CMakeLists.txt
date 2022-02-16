@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.16.3)
 set(CMAKE_CXX_STANDARD 17)
 set(PROJECT_NAME http_proxy)
 project(${PROJECT_NAME})
 
 set(PROJECT_HEADERS include/utils.h include/flow.h include/http.h)
-set(PROJECT_SRC src/utils.cpp src/main.cpp include/proxy.h src/proxy.cpp src/flow.cpp src/http.cpp)
+set(PROJECT_SRC src/main.cpp include/proxy.h src/proxy.cpp src/flow.cpp src/http.cpp)
 
 find_package(Boost REQUIRED COMPONENTS system )
 add_executable(${PROJECT_NAME} ${PROJECT_HEADERS} ${PROJECT_SRC})
