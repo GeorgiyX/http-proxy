@@ -1,25 +1,13 @@
 #include <iostream>
-#include <boost/asio.hpp>
-
-using namespace boost;
+#include "proxy.h"
 
 int main() {
-    std::cout << "Boost asio, hello!" << std::endl;
-    asio::io_service ios;
-    asio::ip::tcp protocol = asio::ip::tcp::v4();
-    asio::ip::tcp::acceptor acceptor(ios);
-    boost::system::error_code err;
-    acceptor.open(protocol, err);
-
-    if (err.value()) {
-        std::cout << "Не удалось открыть acceptor сокет: " << err.message() << std::endl;
-        exit(err.value());
+    std::cout << "Hello World!\n";
+    Proxy proxy(8);
+    try {
+        proxy.start(5000);
+    } catch (std::exception &exception) {
+        std::cerr << exception.what() << std::endl;
+        proxy.stop();
     }
-
-    return 0;
-
-
-
-
-    return 0;
 }

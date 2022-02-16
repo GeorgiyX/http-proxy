@@ -7,6 +7,6 @@
  * Обрабатывает err: если ошибка есть, печатает и завершает программу
  * @param err - объект ошибки
  */
-void handleErr(const boost::system::error_code &err);
+void handleErr(const boost::system::error_code &err, const std::string &message);
 
 #endif //HTTP_PROXY_UTILS_H

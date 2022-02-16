@@ -1,9 +1,9 @@
 #include "utils.h"
 #include <iostream>
 
-void handleErr(const boost::system::error_code &err) {
+void handleErr(const boost::system::error_code &err, const std::string &message) {
     if (err.value()) {
-        std::cerr << "Error. Code = \"" << err.value() << "\". Message = \""
+        std::cerr << message << "; code =\"" << err.value() << "\", message =\""
         << err.message() << "\"" << std::endl;
         exit(err.value());
     }

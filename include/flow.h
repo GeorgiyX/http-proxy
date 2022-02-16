@@ -24,10 +24,27 @@ private:
     explicit Flow(std::shared_ptr<asio::io_service> &&ios);
 
     void destroy();
+    void onRequestFirstLineReceived(const boost::system::error_code &err, std::size_t bytes);
+    void onRequestHeadersReceived(const boost::system::error_code &err, std::size_t bytes);
+    void onRequestBodyReceived(const boost::system::error_code &err, std::size_t bytes);
+    void onHostResolve(const boost::system::error_code& err, const asio::ip::tcp::resolver::iterator& iterator);
+    void onConnectionEstablish(const boost::system::error_code& err, const asio::ip::tcp::resolver::iterator& iterator);
+    void onRequestSend(const boost::system::error_code& err, std::size_t bytes);
+    void onResponseRead(const boost::system::error_code &err, std::size_t bytes);
+    void onResponseSend(const boost::system::error_code &err, std::size_t bytes);
 
     std::shared_ptr<asio::io_service> _ios;
+    std::unique_ptr<asio::ip::tcp::resolver> _resolver;
+    std::unique_ptr<asio::ip::tcp::socket> _outSocket;
     std::unique_ptr<asio::ip::tcp::socket> _inSocket;
     std::shared_ptr<Flow> _self;
+    asio::streambuf _request;
+    asio::streambuf _response;
+    std::string _patchedHeaders;
+    std::string  _host;
+    unsigned _port;
+
+
 };
 
 #endif //HTTP_PROXY_FLOW_H

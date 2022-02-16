@@ -4,7 +4,7 @@
 const unsigned BACKLOG_SIZE = 42;
 
 Proxy::Proxy(size_t threadsCount) :
-        _ios(),
+        _ios(std::make_shared<asio::io_service>()),
         _work(asio::make_work_guard(*_ios)),
         _threadPool(),
         _acceptor(),
@@ -20,9 +20,12 @@ void Proxy::start(unsigned port) {
     }
 
     auto endpoint = asio::ip::tcp::endpoint(asio::ip::address_v4::any(), port);
-    _acceptor = std::make_unique<asio::ip::tcp::acceptor>(_ios, std::move(endpoint));
+    _acceptor = std::make_unique<asio::ip::tcp::acceptor>(*_ios, std::move(endpoint));
     _acceptor->listen(BACKLOG_SIZE);
     accept();
+    for (auto &thread : _threadPool) {
+        thread->join();
+    }
 }
 
 void Proxy::stop() {
@@ -45,13 +48,13 @@ void Proxy::knockout() {
 void Proxy::accept() {
     auto flow = Flow::create(_ios);
     _acceptor->async_accept(flow->inSocket(), [this, flow] (const boost::system::error_code &err) {
-        if (!err) {
+        if (err.value()) {
             std::cerr << "Error in async_accept: " << err.value() << " " << err.message() << std::endl;
         } else {
             flow->handle();
         }
 
-        if (!_isStopped.load()) {
+        if (_isStopped.load()) {
             _acceptor->close();
             return;
         }
